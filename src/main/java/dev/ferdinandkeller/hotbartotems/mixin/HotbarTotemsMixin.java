@@ -1,14 +1,15 @@
 package dev.ferdinandkeller.hotbartotems.mixin;
 
 import net.minecraft.advancement.criterion.Criteria;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.DeathProtectionComponent;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityStatuses;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.stat.Stats;
 import net.minecraft.world.event.GameEvent;
@@ -21,9 +22,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(LivingEntity.class)
 public abstract class HotbarTotemsMixin {
     @Shadow public abstract void setHealth(float health);
+    @Shadow public abstract boolean clearStatusEffects();
+    @Shadow public abstract boolean addStatusEffect(StatusEffectInstance effect);
 
-    @Inject(method = "tryUseDeathProtector", at = @At("TAIL"), cancellable = true)
-    private void tryUseDeathProtector(DamageSource source, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "tryUseTotem", at = @At("TAIL"), cancellable = true)
+    private void tryUseTotem(DamageSource source, CallbackInfoReturnable<Boolean> cir) {
         if (cir.getReturnValue()) return; // if already success, do nothing
 
         // if not user, can't look for hotbar
@@ -31,15 +34,13 @@ public abstract class HotbarTotemsMixin {
 
         PlayerInventory inv = serverPlayerEntity.getInventory();
         ItemStack itemStack = null;
-        DeathProtectionComponent deathProtectionComponent = null;
 
         // iterate hotbar
-        for (int i = 0; i < PlayerInventory.HOTBAR_SIZE; i++) {
+        for (int i = 0; i < PlayerInventoryAccessor.getHotbarSize(); i++) {
             ItemStack itemStack2 = inv.getStack(i);
-            deathProtectionComponent = itemStack2.get(DataComponentTypes.DEATH_PROTECTION);
 
-            // if no death protection component, ignore
-            if (deathProtectionComponent == null) continue;
+            // if not totem, ignore
+            if (!itemStack2.isOf(Items.TOTEM_OF_UNDYING)) continue;
 
             itemStack = itemStack2.copy();
             itemStack2.decrement(1);
@@ -47,7 +48,7 @@ public abstract class HotbarTotemsMixin {
         }
 
         // didn't find a totem
-        if (deathProtectionComponent == null) return;
+        if (itemStack == null) return;
 
         // stat stuff
         serverPlayerEntity.incrementStat(Stats.USED.getOrCreateStat(itemStack.getItem()));
@@ -56,7 +57,11 @@ public abstract class HotbarTotemsMixin {
 
         // make sure you survive (health, clear effects, regen, ...)
         this.setHealth(1.0F);
-        deathProtectionComponent.applyDeathEffects(itemStack, (LivingEntity)(Object)this);
+        this.clearStatusEffects();
+        this.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, 900, 1));
+        this.addStatusEffect(new StatusEffectInstance(StatusEffects.ABSORPTION, 100, 1));
+        this.addStatusEffect(new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, 800, 0));
+        ((Entity)(Object)this).getWorld().sendEntityStatus((Entity)(Object)this, EntityStatuses.USE_TOTEM_OF_UNDYING);
         // plays UI animation
         ((Entity)(Object)this).getWorld().sendEntityStatus((Entity)(Object)this, EntityStatuses.USE_TOTEM_OF_UNDYING);
 
