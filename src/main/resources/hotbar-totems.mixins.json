@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"package": "dev.ferdinandkeller.hotbartotems.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+      "HotbarTotemsMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}
