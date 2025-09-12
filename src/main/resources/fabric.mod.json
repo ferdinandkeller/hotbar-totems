@@ -3,7 +3,7 @@
 	"id": "hotbar-totems",
 	"version": "${version}",
 	"name": "Hotbar Totems",
-	"description": "Makes Totems of Undying work even when in hotbar !",
+	"description": "Makes Totems of Undying work even when in hotbar!",
 	"authors": [
         {
           "name":  "Ferdinand Keller",
