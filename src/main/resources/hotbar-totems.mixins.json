@@ -1,7 +1,7 @@
 {
 	"required": true,
 	"package": "dev.ferdinandkeller.hotbartotems.mixin",
-	"compatibilityLevel": "JAVA_21",
+	"compatibilityLevel": "JAVA_17",
 	"mixins": [
       "PlayerInventoryAccessor",
       "HotbarTotemsMixin"
