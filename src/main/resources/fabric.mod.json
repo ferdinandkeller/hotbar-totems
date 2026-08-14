@@ -5,33 +5,33 @@
 	"name": "Hotbar Totems",
 	"description": "Makes Totems of Undying work even when in hotbar!",
 	"authors": [
-        {
-          "name":  "Ferdinand Keller",
-          "contact": {
-            "email": "ferdinand.keller@proton.me",
-            "homepage": "https://ferdinandkeller.dev"
-          }
-        }
+		{
+			"name": "Ferdinand Keller",
+			"contact": {
+				"email": "ferdinand.keller@proton.me",
+				"homepage": "https://ferdinandkeller.dev"
+			}
+		}
 	],
 	"contact": {
-      "homepage": "https://modrinth.com/mod/hotbar-totems",
-      "sources": "https://github.com/ferdinandkeller/hotbar-totems",
-      "issues": "https://github.com/ferdinandkeller/hotbar-totems/issues"
+		"homepage": "https://modrinth.com/mod/hotbar-totems",
+		"sources": "https://github.com/ferdinandkeller/hotbar-totems",
+		"issues": "https://github.com/ferdinandkeller/hotbar-totems/issues"
 	},
 	"license": "MIT",
 	"icon": "assets/hotbar-totems/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-          "dev.ferdinandkeller.hotbartotems.HotbarTotems"
+			"dev.ferdinandkeller.hotbartotems.HotbarTotems"
 		]
 	},
 	"mixins": [
 		"hotbar-totems.mixins.json"
 	],
 	"depends": {
-		"fabricloader": ">=0.17.2",
-        "minecraft": ">=1.21.0 <=1.21.1",
+		"fabricloader": ">=0.19.3",
+		"minecraft": "1.21.9",
 		"java": ">=21"
 	}
 }

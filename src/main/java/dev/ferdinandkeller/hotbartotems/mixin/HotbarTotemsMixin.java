@@ -1,17 +1,18 @@
 package dev.ferdinandkeller.hotbartotems.mixin;
 
 import net.minecraft.advancement.criterion.Criteria;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.DeathProtectionComponent;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityStatuses;
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.stat.Stats;
+import net.minecraft.world.World;
 import net.minecraft.world.event.GameEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -20,50 +21,45 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(LivingEntity.class)
-public abstract class HotbarTotemsMixin {
+public abstract class HotbarTotemsMixin extends Entity {
+    public HotbarTotemsMixin(EntityType<?> type, World world) {
+        super(type, world);
+    }
+
     @Shadow public abstract void setHealth(float health);
-    @Shadow public abstract boolean clearStatusEffects();
-    @Shadow public abstract boolean addStatusEffect(StatusEffectInstance effect);
 
-    @Inject(method = "tryUseTotem", at = @At("TAIL"), cancellable = true)
-    private void tryUseTotem(DamageSource source, CallbackInfoReturnable<Boolean> cir) {
-        if (cir.getReturnValue()) return; // if already success, do nothing
+    @Inject(method = "tryUseDeathProtector", at = @At("TAIL"), cancellable = true)
+    private void hotbartotems$tryHotbarDeathProtector(DamageSource source, CallbackInfoReturnable<Boolean> cir) {
+        // vanilla already consumed a totem from a hand
+        if (cir.getReturnValueZ()) return;
 
-        // if not user, can't look for hotbar
-        if (!((LivingEntity)(Object) this instanceof ServerPlayerEntity serverPlayerEntity)) return;
+        // only players have a hotbar, and only the server should consume items
+        if (!((Object) this instanceof ServerPlayerEntity player)) return;
 
-        PlayerInventory inv = serverPlayerEntity.getInventory();
-        ItemStack itemStack = null;
+        PlayerInventory inventory = player.getInventory();
+        ItemStack consumed = null;
+        DeathProtectionComponent protection = null;
 
-        // iterate hotbar
-        for (int i = 0; i < PlayerInventoryAccessor.getHotbarSize(); i++) {
-            ItemStack itemStack2 = inv.getStack(i);
+        for (int slot = 0; slot < PlayerInventory.getHotbarSize(); slot++) {
+            ItemStack stack = inventory.getStack(slot);
+            DeathProtectionComponent component = stack.get(DataComponentTypes.DEATH_PROTECTION);
+            if (component == null) continue;
 
-            // if not totem, ignore
-            if (!itemStack2.isOf(Items.TOTEM_OF_UNDYING)) continue;
-
-            itemStack = itemStack2.copy();
-            itemStack2.decrement(1);
+            protection = component;
+            consumed = stack.copy();
+            stack.decrement(1);
             break;
         }
 
-        // didn't find a totem
-        if (itemStack == null) return;
+        if (consumed == null) return;
 
-        // stat stuff
-        serverPlayerEntity.incrementStat(Stats.USED.getOrCreateStat(itemStack.getItem()));
-        Criteria.USED_TOTEM.trigger(serverPlayerEntity, itemStack);
-        ((Entity)(Object)this).emitGameEvent(GameEvent.ITEM_INTERACT_FINISH);
+        player.incrementStat(Stats.USED.getOrCreateStat(consumed.getItem()));
+        Criteria.USED_TOTEM.trigger(player, consumed);
+        this.emitGameEvent(GameEvent.ITEM_INTERACT_FINISH);
 
-        // make sure you survive (health, clear effects, regen, ...)
         this.setHealth(1.0F);
-        this.clearStatusEffects();
-        this.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, 900, 1));
-        this.addStatusEffect(new StatusEffectInstance(StatusEffects.ABSORPTION, 100, 1));
-        this.addStatusEffect(new StatusEffectInstance(StatusEffects.FIRE_RESISTANCE, 800, 0));
-        ((Entity)(Object)this).getWorld().sendEntityStatus((Entity)(Object)this, EntityStatuses.USE_TOTEM_OF_UNDYING);
-        // plays UI animation
-        ((Entity)(Object)this).getWorld().sendEntityStatus((Entity)(Object)this, EntityStatuses.USE_TOTEM_OF_UNDYING);
+        protection.applyDeathEffects(consumed, (LivingEntity) (Object) this);
+        this.getEntityWorld().sendEntityStatus(this, EntityStatuses.USE_TOTEM_OF_UNDYING);
 
         cir.setReturnValue(true);
     }

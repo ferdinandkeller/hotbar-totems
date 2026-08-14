@@ -12,5 +12,6 @@ public class HotbarTotems implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+        LOGGER.info("Hotbar Totems available");
 	}
 }
